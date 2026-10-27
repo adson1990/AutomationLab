@@ -4,6 +4,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Exceção personalizada para representar erros relacionados a operações com alunos.
+ */
+
 public class AlunoException extends RuntimeException {
     private final List<ErroCampo> erros;
 

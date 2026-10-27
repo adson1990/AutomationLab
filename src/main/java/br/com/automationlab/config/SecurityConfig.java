@@ -7,10 +7,24 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Classe de configurações de segurança do spring security, 
+ * responsável por definir as regras de acesso e autenticação da aplicação.
+ * 
+ * Configurações inclusas: H2 Console, Form Login e Basic Auth.
+ */
 
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfig {
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -26,7 +40,7 @@ public class SecurityConfig {
     @Order(Ordered.LOWEST_PRECEDENCE)
     SecurityFilterChain applicationSecurityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated());
-        http.formLogin(Customizer.withDefaults());
+        http.formLogin(form -> form.defaultSuccessUrl("/alunos"));
         http.httpBasic(Customizer.withDefaults());
         return http.build();
     }

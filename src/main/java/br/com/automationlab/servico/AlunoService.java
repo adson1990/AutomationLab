@@ -1,5 +1,6 @@
 package br.com.automationlab.servico;
 
+import br.com.automationlab.dto.AlunoListagemDTO;
 import br.com.automationlab.entidade.Aluno;
 import br.com.automationlab.exceptions.AlunoException;
 import br.com.automationlab.exceptions.AlunoException.ErroCampo;
@@ -9,6 +10,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,9 @@ import java.util.Set;
 
 @Service
 public class AlunoService {
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String MASCARA_CPF = "********";
+
     private final AlunoRepository repository;
     private final Validator validator;
 
@@ -77,6 +82,29 @@ public class AlunoService {
             }
             throw exception;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlunoListagemDTO> listar(Authentication autenticacao) {
+        boolean administrador = autenticacao != null && autenticacao.getAuthorities() != null
+                && autenticacao.getAuthorities().stream()
+                .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
+
+        return repository.findAll().stream()
+                .map(aluno -> new AlunoListagemDTO(
+                        aluno.getNome(),
+                        administrador ? aluno.getCpf() : mascararCpf(aluno.getCpf()),
+                        aluno.getDataNascimento(),
+                        aluno.getCurso(),
+                        aluno.getTurno()))
+                .toList();
+    }
+
+    private String mascararCpf(String cpf) {
+        if (cpf == null || cpf.length() < 3) {
+            return MASCARA_CPF;
+        }
+        return cpf.substring(0, 3) + MASCARA_CPF;
     }
 
     private String normalizarCpf(String cpf) {

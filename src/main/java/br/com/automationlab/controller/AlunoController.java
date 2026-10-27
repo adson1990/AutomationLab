@@ -1,5 +1,6 @@
 package br.com.automationlab.controller;
 
+import br.com.automationlab.dto.AlunoListagemDTO;
 import br.com.automationlab.entidade.Aluno;
 import br.com.automationlab.exceptions.AlunoException;
 import br.com.automationlab.exceptions.AlunoException.ErroCampo;
@@ -9,11 +10,14 @@ import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.PropertyAccessorFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
 
 @Controller
 public class AlunoController {
@@ -32,6 +36,13 @@ public class AlunoController {
     public String novo(Model model) {
         model.addAttribute(ALUNO_ATTRIBUTE, novoAlunoVazio());
         return FORM_VIEW;
+    }
+
+    @GetMapping("/alunos")
+    public String listar(Authentication autenticacao, Model model) {
+        List<AlunoListagemDTO> alunos = alunoService.listar(autenticacao);
+        model.addAttribute("alunos", alunos);
+        return "aluno/listagem";
     }
 
     @PostMapping("/alunos")
