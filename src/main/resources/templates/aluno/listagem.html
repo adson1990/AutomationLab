@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Alunos cadastrados | AutomationLab</title>
+</head>
+<body>
+<main>
+    <nav aria-label="Navegação de alunos">
+        <a th:href="@{/alunos/novo}">Cadastrar aluno</a>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit">SAIR</button>
+        </form>
+    </nav>
+
+    <h1>Alunos cadastrados</h1>
+
+    <p th:if="${alunos.isEmpty()}" role="status">Nenhum aluno cadastrado.</p>
+
+    <table th:unless="${alunos.isEmpty()}">
+        <thead>
+        <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">CPF</th>
+            <th scope="col">Data de nascimento</th>
+            <th scope="col">Curso</th>
+            <th scope="col">Turno</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="aluno : ${alunos}">
+            <td th:text="${aluno.nome}">Nome do aluno</td>
+            <td th:text="${aluno.cpfExibicao}">CPF protegido</td>
+            <td th:text="${#temporals.format(aluno.dataNascimento, 'dd/MM/yyyy')}">01/01/2000</td>
+            <td th:text="${aluno.curso != null ? aluno.curso : '—'}">Curso</td>
+            <td th:text="${aluno.turno != null ? aluno.turno : '—'}">Turno</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

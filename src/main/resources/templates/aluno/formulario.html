@@ -7,6 +7,12 @@
 </head>
 <body>
 <main>
+    <nav aria-label="Navegação de alunos">
+        <a th:href="@{/alunos}">Listagem de alunos</a>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit">SAIR</button>
+        </form>
+    </nav>
     <h1>Cadastro de aluno</h1>
 
     <p th:if="${sucesso}" role="status" th:text="${sucesso}">Aluno cadastrado com sucesso.</p>
