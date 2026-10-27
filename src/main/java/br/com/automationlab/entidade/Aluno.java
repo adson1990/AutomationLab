@@ -10,16 +10,22 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "alunos")
+@Table(name = "alunos", uniqueConstraints =
+        @UniqueConstraint(name = Aluno.CONSTRAINT_CPF_UNIQUE, columnNames = "cpf"))
 public class Aluno {
+    public static final String CONSTRAINT_CPF_UNIQUE = "uk_alunos_cpf";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,11 +36,12 @@ public class Aluno {
 
     @NotBlank(message = "CPF é obrigatório")
     @CpfValido
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(nullable = false, length = 11)
     private String cpf;
 
     @NotNull(message = "Data de nascimento é obrigatória")
     @PastOrPresent(message = "Data de nascimento não pode estar no futuro")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @Column(name = "data_nascimento", nullable = false)
     private LocalDate dataNascimento;
 
@@ -47,10 +54,8 @@ public class Aluno {
     @Column(name = "telefone_responsavel")
     private String telefoneResponsavel;
 
-    @Pattern(
-            regexp = "^\\s*$|^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
-            message = "E-mail inválido"
-    )
+    @Email(message = "E-mail inválido")
+    @Size(max = 254, message = "E-mail deve ter no máximo 254 caracteres")
     @Column(length = 254)
     private String email;
 

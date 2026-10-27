@@ -2,6 +2,7 @@ package br.com.automationlab.servico;
 
 import br.com.automationlab.entidade.Aluno;
 import br.com.automationlab.exceptions.AlunoException;
+import br.com.automationlab.exceptions.AlunoException.ErroCampo;
 import br.com.automationlab.repositorio.AlunoRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -92,18 +94,24 @@ class AlunoServiceTests {
         assertTrue(erro.getMessage().contains("Nome é obrigatório"));
         assertTrue(erro.getMessage().contains("Data de nascimento é obrigatória"));
         assertTrue(erro.getMessage().contains("E-mail inválido"));
+        assertEquals(List.of("dataNascimento", "email", "nome"),
+                erro.getErros().stream().map(ErroCampo::campo).toList());
     }
 
     @Test
-    void aceitaEmailECelularOpcionaisOuEmBranco() {
+    void aceitaEmailNuloEVazioECelularOpcionais() {
         Aluno aluno = alunoAdulto(CPF_VALIDO);
-        aluno.setEmail(" ");
+        aluno.setEmail(null);
         aluno.setCelular(null);
 
         Aluno salvo = service.salvar(aluno);
 
-        assertEquals(" ", salvo.getEmail());
+        assertEquals(null, salvo.getEmail());
         assertEquals(null, salvo.getCelular());
+
+        Aluno alunoComEmailVazio = alunoAdulto("111.444.777-35");
+        alunoComEmailVazio.setEmail("");
+        assertEquals(null, service.salvar(alunoComEmailVazio).getEmail());
     }
 
     @Test
@@ -116,6 +124,86 @@ class AlunoServiceTests {
 
         assertEquals("aluno@example.com", salvo.getEmail());
         assertEquals("11999990000", salvo.getCelular());
+    }
+
+    @Test
+    void rejeitaEmailComMaisDe254Caracteres() {
+        Aluno aluno = alunoAdulto(CPF_VALIDO);
+        aluno.setEmail("a".repeat(243) + "@example.com");
+
+        AlunoException erro = assertThrows(AlunoException.class, () -> service.salvar(aluno));
+
+        assertTrue(erro.getErros().stream().anyMatch(campo -> campo.campo().equals("email")));
+    }
+
+    @Test
+    void rejeitaFormatosDeEmailComPontosEmPosicoesInvalidas() {
+        for (String email : List.of(
+                "a..b@example.com", ".a@example.com", "a.@example.com",
+                "a@example..com", "a@-example.com", "a@b-.com")) {
+            Aluno aluno = alunoAdulto(CPF_VALIDO);
+            aluno.setEmail(email);
+
+            assertThrows(AlunoException.class, () -> service.salvar(aluno), email);
+        }
+    }
+
+    @Test
+    void rejeitaCpfAusente() {
+        Aluno aluno = alunoAdulto(CPF_VALIDO);
+        aluno.setCpf(null);
+
+        AlunoException erro = assertThrows(AlunoException.class, () -> service.salvar(aluno));
+
+        assertTrue(erro.getErros().stream().anyMatch(campo -> campo.campo().equals("cpf")));
+    }
+
+    @Test
+    void rejeitaDataDeNascimentoNoFuturoMasAceitaHoje() {
+        Aluno futuro = new Aluno("Estudante Fictício", CPF_VALIDO, LocalDate.now().plusDays(1),
+                null, null, null, null);
+        assertThrows(AlunoException.class, () -> service.salvar(futuro));
+
+        Aluno nascidoHoje = new Aluno("Estudante Fictício", "111.444.777-35", LocalDate.now(),
+                null, null, "Responsável Fictício", "11999990000");
+        assertNotNull(service.salvar(nascidoHoje).getId());
+    }
+
+    @Test
+    void rejeitaResponsavelIncompletoParaMenor() {
+        Aluno semNome = new Aluno("Estudante Fictício", CPF_VALIDO, LocalDate.now().minusYears(17),
+                null, null, null, "11999990000");
+        AlunoException erroNome = assertThrows(AlunoException.class, () -> service.salvar(semNome));
+        assertTrue(erroNome.getErros().stream().anyMatch(campo -> campo.campo().equals("nomeResponsavel")));
+
+        Aluno semTelefone = new Aluno("Estudante Fictício", CPF_VALIDO, LocalDate.now().minusYears(17),
+                null, null, "Responsável Fictício", " ");
+        AlunoException erroTelefone = assertThrows(AlunoException.class, () -> service.salvar(semTelefone));
+        assertTrue(erroTelefone.getErros().stream()
+                .anyMatch(campo -> campo.campo().equals("telefoneResponsavel")));
+    }
+
+    @Test
+    void informaSomenteCadaCampoDeResponsavelQueEstaFaltando() {
+        Aluno semNome = new Aluno("Estudante Fictício", CPF_VALIDO, LocalDate.now().minusYears(17),
+                null, null, " ", "11999990000");
+        AlunoException erroNome = assertThrows(AlunoException.class, () -> service.salvar(semNome));
+        assertEquals(List.of("nomeResponsavel"),
+                erroNome.getErros().stream().map(ErroCampo::campo).toList());
+
+        Aluno semTelefone = new Aluno("Estudante Fictício", CPF_VALIDO, LocalDate.now().minusYears(17),
+                null, null, "Responsável Fictício", null);
+        AlunoException erroTelefone = assertThrows(AlunoException.class, () -> service.salvar(semTelefone));
+        assertEquals(List.of("telefoneResponsavel"),
+                erroTelefone.getErros().stream().map(ErroCampo::campo).toList());
+    }
+
+    @Test
+    void consideraAdultoQuemCompleta18AnosHoje() {
+        Aluno aluno = new Aluno("Estudante Fictício", CPF_VALIDO, LocalDate.now().minusYears(18),
+                null, null, null, null);
+
+        assertNotNull(service.salvar(aluno).getId());
     }
 
     private Aluno alunoAdulto(String cpf) {
