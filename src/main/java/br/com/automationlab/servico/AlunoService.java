@@ -2,16 +2,21 @@ package br.com.automationlab.servico;
 
 import br.com.automationlab.entidade.Aluno;
 import br.com.automationlab.exceptions.AlunoException;
+import br.com.automationlab.exceptions.AlunoException.ErroCampo;
 import br.com.automationlab.repositorio.AlunoRepository;
 
+import org.hibernate.exception.ConstraintViolationException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -26,30 +31,52 @@ public class AlunoService {
 
     @Transactional
     public Aluno salvar(Aluno aluno) {
+        if ("".equals(aluno.getEmail())) {
+            aluno.setEmail(null);
+        }
+
         Set<ConstraintViolation<Aluno>> violations = validator.validate(aluno);
         if (!violations.isEmpty()) {
-            String mensagens = violations.stream()
-                    .map(ConstraintViolation::getMessage)
+            List<ErroCampo> erros = violations.stream()
+                    .map(erro -> new ErroCampo(erro.getPropertyPath().toString(), erro.getMessage()))
                     .distinct()
-                    .collect(Collectors.joining("; "));
-            throw new AlunoException("Não foi possível salvar o aluno: " + mensagens);
+                    .sorted(Comparator.comparing(ErroCampo::campo).thenComparing(ErroCampo::mensagem))
+                    .toList();
+            throw AlunoException.comErros(erros);
         }
         aluno.setCpf(normalizarCpf(aluno.getCpf()));
 
-        if (isMenorDeIdade(aluno.getDataNascimento())
-                && (emBranco(aluno.getNomeResponsavel()) || emBranco(aluno.getTelefoneResponsavel()))) {
-            throw new AlunoException(
-                    "Nome e telefone do responsável são obrigatórios para menores de 18 anos");
+        if (isMenorDeIdade(aluno.getDataNascimento())) {
+            List<ErroCampo> errosResponsavel = new ArrayList<>();
+            if (emBranco(aluno.getNomeResponsavel())) {
+                errosResponsavel.add(new ErroCampo(
+                        "nomeResponsavel", "Nome do responsável é obrigatório para menores de 18 anos"));
+            }
+            if (emBranco(aluno.getTelefoneResponsavel())) {
+                errosResponsavel.add(new ErroCampo(
+                        "telefoneResponsavel", "Telefone do responsável é obrigatório para menores de 18 anos"));
+            }
+            if (!errosResponsavel.isEmpty()) {
+                throw AlunoException.comErros(errosResponsavel);
+            }
         }
 
         boolean cpfPertenceAOutroAluno = repository.findByCpf(aluno.getCpf())
                 .filter(existente -> !existente.getId().equals(aluno.getId()))
                 .isPresent();
         if (cpfPertenceAOutroAluno) {
-            throw new AlunoException("Já existe um aluno cadastrado com este CPF");
+            throw AlunoException.comErros(List.of(new ErroCampo("cpf", "Já existe um aluno cadastrado com este CPF")));
         }
 
-        return repository.save(aluno);
+        try {
+            return repository.saveAndFlush(aluno);
+        } catch (DataIntegrityViolationException exception) {
+            if (isViolacaoDeCpfUnico(exception)) {
+                throw AlunoException.comErros(List.of(
+                        new ErroCampo("cpf", "Já existe um aluno cadastrado com este CPF")), exception);
+            }
+            throw exception;
+        }
     }
 
     private String normalizarCpf(String cpf) {
@@ -62,5 +89,17 @@ public class AlunoService {
 
     private boolean emBranco(String valor) {
         return valor == null || valor.isBlank();
+    }
+
+    private boolean isViolacaoDeCpfUnico(DataIntegrityViolationException exception) {
+        Throwable causa = exception;
+        while (causa != null) {
+            if (causa instanceof ConstraintViolationException violacao
+                    && Aluno.CONSTRAINT_CPF_UNIQUE.equalsIgnoreCase(violacao.getConstraintName())) {
+                return true;
+            }
+            causa = causa.getCause();
+        }
+        return false;
     }
 }

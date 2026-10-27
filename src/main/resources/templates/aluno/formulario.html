@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cadastro de aluno | AutomationLab</title>
+</head>
+<body>
+<main>
+    <h1>Cadastro de aluno</h1>
+
+    <p th:if="${sucesso}" role="status" th:text="${sucesso}">Aluno cadastrado com sucesso.</p>
+
+    <form th:action="@{/alunos}" th:object="${aluno}" method="post">
+        <div th:if="${#fields.hasGlobalErrors()}" role="alert">
+            <p th:each="erro : ${#fields.globalErrors()}" th:text="${erro}">Não foi possível concluir o cadastro.</p>
+        </div>
+
+        <div>
+            <label for="nome">Nome *</label>
+            <input id="nome" type="text" th:field="*{nome}" th:errorclass="campo-invalido" required>
+            <p th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="cpf">CPF *</label>
+            <input id="cpf" type="text" th:field="*{cpf}" inputmode="numeric" autocomplete="off" required>
+            <p th:if="${#fields.hasErrors('cpf')}" th:errors="*{cpf}" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="dataNascimento">Data de nascimento *</label>
+            <input id="dataNascimento" type="date" th:field="*{dataNascimento}" required>
+            <p th:if="${#fields.hasErrors('dataNascimento')}" th:errors="*{dataNascimento}" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="curso">Curso</label>
+            <input id="curso" type="text" th:field="*{curso}">
+            <p th:if="${#fields.hasErrors('curso')}" th:errors="*{curso}" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="turno">Turno</label>
+            <input id="turno" type="text" th:field="*{turno}">
+            <p th:if="${#fields.hasErrors('turno')}" th:errors="*{turno}" role="alert"></p>
+        </div>
+
+        <fieldset>
+            <legend>Responsável (obrigatório para menores de 18 anos)</legend>
+            <div>
+                <label for="nomeResponsavel">Nome do responsável</label>
+                <input id="nomeResponsavel" type="text" th:field="*{nomeResponsavel}">
+                <p th:if="${#fields.hasErrors('nomeResponsavel')}" th:errors="*{nomeResponsavel}" role="alert"></p>
+            </div>
+            <div>
+                <label for="telefoneResponsavel">Telefone do responsável</label>
+                <input id="telefoneResponsavel" type="tel" th:field="*{telefoneResponsavel}">
+                <p th:if="${#fields.hasErrors('telefoneResponsavel')}" th:errors="*{telefoneResponsavel}" role="alert"></p>
+            </div>
+        </fieldset>
+
+        <div>
+            <label for="email">E-mail</label>
+            <input id="email" type="email" th:field="*{email}" maxlength="254">
+            <p th:if="${#fields.hasErrors('email')}" th:errors="*{email}" role="alert"></p>
+        </div>
+
+        <div>
+            <label for="celular">Celular</label>
+            <input id="celular" type="tel" th:field="*{celular}">
+            <p th:if="${#fields.hasErrors('celular')}" th:errors="*{celular}" role="alert"></p>
+        </div>
+
+        <button type="submit">Salvar aluno</button>
+    </form>
+</main>
+</body>
+</html>
