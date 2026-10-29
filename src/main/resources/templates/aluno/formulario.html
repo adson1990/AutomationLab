@@ -9,6 +9,8 @@
 <main>
     <nav aria-label="Navegação de alunos">
         <a th:href="@{/alunos}">Listagem de alunos</a>
+        <a th:if="${aluno.id != null}"
+           th:href="@{/alunos/buscar/{id}(id=${aluno.id})}">Visualizar aluno</a>
         <form th:action="@{/logout}" method="post">
             <button type="submit">SAIR</button>
         </form>
