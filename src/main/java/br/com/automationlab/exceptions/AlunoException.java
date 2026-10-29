@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
  * Exceção personalizada para representar erros relacionados a operações com alunos.
  */
 
+@SuppressWarnings("null")
 public class AlunoException extends RuntimeException {
     private final List<ErroCampo> erros;
 

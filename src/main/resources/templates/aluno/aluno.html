@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Informações do aluno | AutomationLab</title>
+</head>
+<body>
+<main>
+    <nav aria-label="Navegação de alunos">
+        <a th:href="@{/alunos}">Listagem de alunos</a>
+        <a th:href="@{/alunos/novo}">Cadastrar aluno</a>
+        <a th:href="@{/alunos/buscar}">Buscar outro aluno</a>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit">SAIR</button>
+        </form>
+    </nav>
+
+    <h1>Informações do aluno</h1>
+
+    <p th:if="${sucesso_edit}" role="status" th:text="${sucesso_edit}">Aluno alterado com sucesso.</p>
+    <p th:if="${sucesso_delete}" role="status" th:text="${sucesso_delete}">Aluno deletado com sucesso.</p>
+
+    <form th:action="@{/alunos/buscar}" method="get"
+          onsubmit="this.action = this.action.replace(/\/$/, '') + '/' + encodeURIComponent(this.elements['id'].value); this.elements['id'].removeAttribute('name');">
+        <label for="id">ID do aluno</label>
+        <input id="id" name="id" type="number" inputmode="numeric" autocomplete="off"
+               min="1" step="1" th:value="${aluno != null ? aluno.id : id}" required>
+        <button type="submit">Buscar</button>
+    </form>
+
+    <p th:if="${erroBusca != null}" role="alert" th:text="${erroBusca}">
+        Não foi encontrado aluno com esse ID.
+    </p>
+    <p th:if="${aluno == null and erroBusca == null}" role="status">
+        Informe o ID do aluno.
+    </p>
+
+    <section th:if="${aluno != null}" aria-labelledby="dados-aluno-titulo">
+        <h2 id="dados-aluno-titulo">Dados do aluno</h2>
+        <p><strong>ID:</strong> <span th:text="${aluno.id}">ID do aluno</span></p>
+
+        <form th:object="${aluno}">
+            <div>
+                <label for="nome">Nome</label>
+                <input id="nome" type="text" th:field="*{nome}">
+            </div>
+
+            <div sec:authorize="hasAuthority('ROLE_ADMIN')">
+                <label for="cpf">CPF</label>
+                <input id="cpf" type="text" th:field="*{cpf}" inputmode="numeric" autocomplete="off">
+            </div>
+            <div sec:authorize="!hasAuthority('ROLE_ADMIN')">
+                <label for="cpfSomenteLeitura">CPF</label>
+                <input id="cpfSomenteLeitura" type="text" th:value="${aluno.cpf}"
+                       readonly aria-readonly="true">
+            </div>
+
+            <div>
+                <label for="dataNascimento">Data de nascimento</label>
+                <input id="dataNascimento" type="date" th:field="*{dataNascimento}">
+            </div>
+
+            <div>
+                <label for="curso">Curso</label>
+                <input id="curso" type="text" th:field="*{curso}">
+            </div>
+
+            <div>
+                <label for="turno">Turno</label>
+                <input id="turno" type="text" th:field="*{turno}">
+            </div>
+
+            <div>
+                <label for="nomeResponsavel">Nome do responsável</label>
+                <input id="nomeResponsavel" type="text" th:field="*{nomeResponsavel}">
+            </div>
+
+            <div>
+                <label for="telefoneResponsavel">Telefone do responsável</label>
+                <input id="telefoneResponsavel" type="tel" th:field="*{telefoneResponsavel}">
+            </div>
+
+            <div>
+                <label for="email">E-mail</label>
+                <input id="email" type="email" th:field="*{email}">
+            </div>
+
+            <div>
+                <label for="celular">Celular</label>
+                <input id="celular" type="tel" th:field="*{celular}">
+            </div>
+
+            <div>
+                <button type="button">Editar aluno</button>
+                <button sec:authorize="hasAuthority('ROLE_ADMIN')" type="button">Deletar aluno</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>

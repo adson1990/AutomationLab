@@ -1,9 +1,11 @@
 package br.com.automationlab.servico;
 
+import br.com.automationlab.dto.AlunoDTO;
 import br.com.automationlab.dto.AlunoListagemDTO;
 import br.com.automationlab.entidade.Aluno;
 import br.com.automationlab.exceptions.AlunoException;
 import br.com.automationlab.exceptions.AlunoException.ErroCampo;
+import br.com.automationlab.exceptions.AlunoNaoEncontradoException;
 import br.com.automationlab.repositorio.AlunoRepository;
 
 import org.hibernate.exception.ConstraintViolationException;
@@ -129,5 +131,28 @@ public class AlunoService {
             causa = causa.getCause();
         }
         return false;
+    }
+
+    @Transactional(readOnly = true)
+    public AlunoDTO buscarPorId(Long id, Authentication autenticacao) {
+        Aluno aluno = repository.findById(id)
+                .orElseThrow(() -> new AlunoNaoEncontradoException(id));
+        
+        AlunoDTO alunoDTO = new AlunoDTO(aluno);
+        alunoDTO.setCpf(retornaCpfPorRuleDeUsuario(autenticacao, aluno.getCpf()));
+        
+        return alunoDTO;
+    }
+
+    public String retornaCpfPorRuleDeUsuario(Authentication autenticacao, String cpf) {
+        boolean administrador = isAdministrador(autenticacao);
+
+        return administrador ? cpf : mascararCpf(cpf);
+    }
+
+    public boolean isAdministrador(Authentication autenticacao) {
+        return autenticacao != null && autenticacao.getAuthorities() != null
+                && autenticacao.getAuthorities().stream()
+                .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
     }
 }
