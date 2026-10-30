@@ -10,6 +10,7 @@ import br.com.automationlab.repositorio.AlunoRepository;
 
 import org.hibernate.exception.ConstraintViolationException;
 import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
@@ -154,5 +155,44 @@ public class AlunoService {
         return autenticacao != null && autenticacao.getAuthorities() != null
                 && autenticacao.getAuthorities().stream()
                 .anyMatch(authority -> ROLE_ADMIN.equals(authority.getAuthority()));
+    }
+
+    @Transactional
+    public Aluno atualizar(Long id, Aluno dados, Authentication autenticacao) {
+        if (id == null) {
+            throw new AlunoException("O ID do aluno não pode ser nulo para atualização.");
+        }
+
+        Aluno alunoExistente = repository.findById(id)
+                .orElseThrow(() -> new AlunoNaoEncontradoException(id));
+
+        alunoExistente.setNome(dados.getNome());
+        if (isAdministrador(autenticacao)) {
+            alunoExistente.setCpf(normalizarCpf(dados.getCpf()));
+        }
+        alunoExistente.setDataNascimento(dados.getDataNascimento());
+        alunoExistente.setCurso(dados.getCurso());
+        alunoExistente.setTurno(dados.getTurno());
+        alunoExistente.setEmail(dados.getEmail());
+        alunoExistente.setCelular(dados.getCelular());
+        alunoExistente.setNomeResponsavel(dados.getNomeResponsavel());
+        alunoExistente.setTelefoneResponsavel(dados.getTelefoneResponsavel());
+
+        return salvar(alunoExistente);
+    }
+
+    @Transactional
+    public void deletar(Long id, Authentication autenticacao) {
+        if (id == null) {
+            throw new IllegalArgumentException("O ID do aluno não pode ser nulo para deleção.");
+        }
+
+        if (!isAdministrador(autenticacao)) {
+            throw new AlunoException("Apenas administradores podem deletar alunos.");
+        }
+
+        Aluno aluno = repository.findById(id)
+                .orElseThrow(() -> new AlunoNaoEncontradoException(id));
+        repository.delete(aluno);
     }
 }

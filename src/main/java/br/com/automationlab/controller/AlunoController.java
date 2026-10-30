@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @Controller
 public class AlunoController {
@@ -94,6 +96,50 @@ public class AlunoController {
 
         redirectAttributes.addFlashAttribute("sucesso", "Aluno cadastrado com sucesso.");
         return "redirect:/alunos/novo";
+    }
+
+    @PostMapping("/alunos/upd/{id}")
+    public String atualizar(
+            @PathVariable Long id,
+            @ModelAttribute(ALUNO_ATTRIBUTE) Aluno aluno,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes,
+            Authentication autenticacao) {
+        model.addAttribute("alunoId", id);
+        if (bindingResult.hasErrors()) {
+            return "aluno/aluno";
+        }
+
+        try {
+            alunoService.atualizar(id, aluno, autenticacao);
+        } catch (AlunoException exception) {
+            model.addAttribute(ALUNO_ATTRIBUTE, aluno);
+            adicionarErros(exception, aluno, bindingResult);
+            return "aluno/aluno";
+        } catch (AlunoNaoEncontradoException exception) {
+            model.addAttribute(ALUNO_ATTRIBUTE, aluno);
+            bindingResult.reject("aluno.naoEncontrado", exception.getMessage());
+            return "aluno/aluno";
+        }
+
+        redirectAttributes.addFlashAttribute("sucesso_edit", "Aluno atualizado com sucesso.");
+        return "redirect:/alunos/buscar";
+    }
+
+    @PostMapping("/aluno/deletar/{id}")
+    public String deletar(@PathVariable Long id, 
+                          Authentication autenticacao, 
+                          RedirectAttributes redirectAttributes) {
+        try {
+            alunoService.deletar(id, autenticacao);
+            redirectAttributes.addFlashAttribute("sucesso_delete", "Aluno deletado com sucesso.");
+        } catch (AlunoNaoEncontradoException exception) {
+            redirectAttributes.addFlashAttribute("erroBusca", "Não foi encontrado aluno com o ID " + id + ".");
+        } catch (AlunoException exception) {
+            redirectAttributes.addFlashAttribute("erroBusca", exception.getMessage());
+        }
+        return "redirect:/alunos/buscar";
     }
 
     private void adicionarErros(AlunoException exception, Aluno aluno, BindingResult bindingResult) {

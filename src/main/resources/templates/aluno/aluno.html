@@ -27,7 +27,8 @@
           onsubmit="this.action = this.action.replace(/\/$/, '') + '/' + encodeURIComponent(this.elements['id'].value); this.elements['id'].removeAttribute('name');">
         <label for="id">ID do aluno</label>
         <input id="id" name="id" type="number" inputmode="numeric" autocomplete="off"
-               min="1" step="1" th:value="${aluno != null ? aluno.id : id}" required>
+               min="1" step="1"
+               th:value="${aluno != null and aluno.id != null ? aluno.id : (alunoId != null ? alunoId : id)}" required>
         <button type="submit">Buscar</button>
     </form>
 
@@ -40,9 +41,15 @@
 
     <section th:if="${aluno != null}" aria-labelledby="dados-aluno-titulo">
         <h2 id="dados-aluno-titulo">Dados do aluno</h2>
-        <p><strong>ID:</strong> <span th:text="${aluno.id}">ID do aluno</span></p>
+        <p><strong>ID:</strong> <span th:text="${aluno.id != null ? aluno.id : alunoId}">ID do aluno</span></p>
 
-        <form th:object="${aluno}">
+        <form th:action="@{/alunos/upd/{id}(id=${aluno.id != null ? aluno.id : alunoId})}"
+              method="post" th:object="${aluno}">
+            <div th:if="${#fields.hasAnyErrors()}" role="alert">
+                <ul>
+                    <li th:each="erro : ${#fields.allErrors()}" th:text="${erro}">Erro nos dados do aluno.</li>
+                </ul>
+            </div>
             <div>
                 <label for="nome">Nome</label>
                 <input id="nome" type="text" th:field="*{nome}">
@@ -94,9 +101,11 @@
             </div>
 
             <div>
-                <button type="button">Editar aluno</button>
-                <button sec:authorize="hasAuthority('ROLE_ADMIN')" type="button">Deletar aluno</button>
+                <button type="submit">Editar aluno</button>
             </div>
+        </form>
+        <form th:action="@{/aluno/deletar/{id}(id=${aluno.id})}" method="post">
+            <button sec:authorize="hasAuthority('ROLE_ADMIN')" type="submit">Deletar aluno</button>
         </form>
     </section>
 </main>
